@@ -13,8 +13,8 @@ class Rocket:
         """
         self.mass = ROCKET_MASS
 
-        self.x = 500
-        self.y = 350
+        self.x = 50.0 # Meter
+        self.y = 35.0
 
         self.velocity_x = 0.0
         self.velocity_y = 0.0

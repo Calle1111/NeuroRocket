@@ -16,6 +16,7 @@ from config import (
     MAIN_FLAME_HEIGHT,
     SIDE_FLAME_WIDTH,
     SIDE_FLAME_HEIGHT,
+    PIXELS_PER_METER,
 )
 
 class Renderer:
@@ -35,13 +36,37 @@ class Renderer:
         """
         self.screen = screen
 
-        self.rocket_surface = pygame.Surface((ROCKET_WIDTH, ROCKET_HEIGHT), pygame.SRCALPHA) # Skapar raket rityta
-        self.main_flame_surface = pygame.Surface((MAIN_FLAME_WIDTH, MAIN_FLAME_HEIGHT), pygame.SRCALPHA)
-        self.side_flame_surface = pygame.Surface((SIDE_FLAME_WIDTH, SIDE_FLAME_HEIGHT), pygame.SRCALPHA)
+        self.rocket_surface = pygame.Surface(
+            (
+                self._meters_to_pixels(ROCKET_WIDTH),
+                self._meters_to_pixels(ROCKET_HEIGHT),
+            ),
+            pygame.SRCALPHA,
+        ) # Skapar raket rityta
+        self.main_flame_surface = pygame.Surface(
+            (
+                self._meters_to_pixels(MAIN_FLAME_WIDTH),
+                self._meters_to_pixels(MAIN_FLAME_HEIGHT),
+            ),
+            pygame.SRCALPHA,
+        )
+        self.side_flame_surface = pygame.Surface(
+            (
+                self._meters_to_pixels(SIDE_FLAME_WIDTH),
+                self._meters_to_pixels(SIDE_FLAME_HEIGHT),
+            ),
+            pygame.SRCALPHA,
+        )
 
         self._create_rocket_surface()
         self._create_main_flame_surface()
         self._create_side_flame_surface()
+
+    def _meters_to_pixels(self, length_in_meters):
+        """
+        Convert a length from meters to pixels for rendering.
+        """
+        return int(length_in_meters * PIXELS_PER_METER)
 
     def _rotate_local_point(self, local_x, local_y, angle):
         """
@@ -63,29 +88,29 @@ class Renderer:
         rocket_body = pygame.Rect(
             0,
             0,
-            ROCKET_WIDTH,
-            ROCKET_HEIGHT,
+            self._meters_to_pixels(ROCKET_WIDTH),
+            self._meters_to_pixels(ROCKET_HEIGHT),
         )
 
         main_engine_shape = pygame.Rect(
-            ROCKET_WIDTH / 2 - MAIN_ENGINE_WIDTH / 2,
-            ROCKET_HEIGHT - MAIN_ENGINE_HEIGHT,
-            MAIN_ENGINE_WIDTH,
-            MAIN_ENGINE_HEIGHT,
+            self._meters_to_pixels(ROCKET_WIDTH / 2 - MAIN_ENGINE_WIDTH / 2),
+            self._meters_to_pixels(ROCKET_HEIGHT - MAIN_ENGINE_HEIGHT),
+            self._meters_to_pixels(MAIN_ENGINE_WIDTH),
+            self._meters_to_pixels(MAIN_ENGINE_HEIGHT),
         )
 
         left_engine_shape = pygame.Rect(
             0,
-            ROCKET_HEIGHT - SIDE_ENGINE_HEIGHT,
-            SIDE_ENGINE_WIDTH,
-            SIDE_ENGINE_HEIGHT,
+            self._meters_to_pixels(ROCKET_HEIGHT - SIDE_ENGINE_HEIGHT),
+            self._meters_to_pixels(SIDE_ENGINE_WIDTH),
+            self._meters_to_pixels(SIDE_ENGINE_HEIGHT),
         )
 
         right_engine_shape = pygame.Rect(
-            ROCKET_WIDTH - SIDE_ENGINE_WIDTH,
-            ROCKET_HEIGHT - SIDE_ENGINE_HEIGHT,
-            SIDE_ENGINE_WIDTH,
-            SIDE_ENGINE_HEIGHT,
+            self._meters_to_pixels(ROCKET_WIDTH - SIDE_ENGINE_WIDTH),
+            self._meters_to_pixels(ROCKET_HEIGHT - SIDE_ENGINE_HEIGHT),
+            self._meters_to_pixels(SIDE_ENGINE_WIDTH),
+            self._meters_to_pixels(SIDE_ENGINE_HEIGHT),
         )
 
         pygame.draw.rect(self.rocket_surface, ROCKET_COLOR, rocket_body) # Ritar rektangel på rocket_surface med formen rocket_shape
@@ -102,8 +127,8 @@ class Renderer:
         main_flame_shape = pygame.Rect(
             0,
             0,
-            MAIN_FLAME_WIDTH,
-            MAIN_FLAME_HEIGHT,
+            self._meters_to_pixels(MAIN_FLAME_WIDTH),
+            self._meters_to_pixels(MAIN_FLAME_HEIGHT),
         )
 
         pygame.draw.rect(self.main_flame_surface, MAIN_FLAME_COLOR, main_flame_shape)
@@ -117,8 +142,8 @@ class Renderer:
         side_flame_shape = pygame.Rect(
             0,
             0,
-            SIDE_FLAME_WIDTH,
-            SIDE_FLAME_HEIGHT,
+            self._meters_to_pixels(SIDE_FLAME_WIDTH),
+            self._meters_to_pixels(SIDE_FLAME_HEIGHT),
         )
 
         pygame.draw.rect(self.side_flame_surface, SIDE_FLAME_COLOR, side_flame_shape)
@@ -134,7 +159,12 @@ class Renderer:
             math.degrees(rocket.angle),
         )
 
-        rocket_draw_position = rocket_surface_rotated.get_rect(center=(rocket.x, rocket.y)) # Skapar hjälpobjekt som håller koll på vart bilden ska placeras
+        rocket_center_x_pixels = self._meters_to_pixels(rocket.x)
+        rocket_center_y_pixels = self._meters_to_pixels(rocket.y)
+
+        rocket_draw_position = rocket_surface_rotated.get_rect(
+            center=(rocket_center_x_pixels, rocket_center_y_pixels)
+        ) # Skapar hjälpobjekt som håller koll på vart bilden ska placeras
         self.screen.blit(rocket_surface_rotated, rocket_draw_position) # Ta bild som finns i roterade rocket_surface och placera den vid rocket_draw_position
 
         if actions["main_engine"]:
@@ -147,8 +177,8 @@ class Renderer:
                 rocket.angle,
             )
 
-            main_flame_center_x = rocket.x + main_flame_offset_x # Denna och under beskriver centurm för flamman i det utomstående koordinatsystemet
-            main_flame_center_y = rocket.y + main_flame_offset_y
+            main_flame_center_x = rocket_center_x_pixels + self._meters_to_pixels(main_flame_offset_x) # Denna och under beskriver centurm för flamman i det utomstående koordinatsystemet
+            main_flame_center_y = rocket_center_y_pixels + self._meters_to_pixels(main_flame_offset_y)
 
             main_flame_rotated = pygame.transform.rotate( # Roterar main_flame kring dess centrum
                 self.main_flame_surface,
@@ -168,8 +198,8 @@ class Renderer:
                 rocket.angle,
             )
 
-            left_flame_center_x = rocket.x + left_flame_offset_x 
-            left_flame_center_y = rocket.y + left_flame_offset_y
+            left_flame_center_x = rocket_center_x_pixels + self._meters_to_pixels(left_flame_offset_x) 
+            left_flame_center_y = rocket_center_y_pixels + self._meters_to_pixels(left_flame_offset_y)
 
             left_frame_rotated = pygame.transform.rotate( 
                 self.side_flame_surface,
@@ -189,8 +219,8 @@ class Renderer:
                 rocket.angle,
             )
 
-            right_flame_center_x = rocket.x + right_flame_offset_x
-            right_flame_center_y = rocket.y + right_flame_offset_y
+            right_flame_center_x = rocket_center_x_pixels + self._meters_to_pixels(right_flame_offset_x)
+            right_flame_center_y = rocket_center_y_pixels + self._meters_to_pixels(right_flame_offset_y)
 
             right_flame_rotated = pygame.transform.rotate(
                 self.side_flame_surface,
@@ -202,7 +232,5 @@ class Renderer:
             
 
         pygame.display.flip() # Innan vi kör flip() så ritar pygame en osynlig bakgundsbild, den tidigare bilden ersätts inte förens flip()
-
-
 
 
