@@ -17,6 +17,18 @@ from config import (
     SIDE_FLAME_WIDTH,
     SIDE_FLAME_HEIGHT,
     PIXELS_PER_METER,
+    WINDOW_WIDTH,
+    FUEL_BAR_WIDTH,
+    FUEL_BAR_HEIGHT,
+    FUEL_BAR_TOP_MARGIN,
+    FUEL_BAR_RIGHT_MARGIN,
+    FUEL_BAR_BORDER_WIDTH,
+    FUEL_BAR_FULL_COLOR,
+    FUEL_BAR_EMPTY_COLOR,
+    FUEL_BAR_BORDER_COLOR,
+    FUEL_TEXT_COLOR,
+    FUEL_TEXT_FONT_SIZE,
+    FUEL_TEXT_BOTTOM_MARGIN,
 )
 
 class Renderer:
@@ -35,6 +47,8 @@ class Renderer:
             screen: The pygame display surface.
         """
         self.screen = screen
+
+        self.fuel_font = pygame.font.SysFont(None, FUEL_TEXT_FONT_SIZE) # Skapar font-objekt fr att sedan rita procenttexten
 
         self.rocket_surface = pygame.Surface(
             (
@@ -148,6 +162,59 @@ class Renderer:
 
         pygame.draw.rect(self.side_flame_surface, SIDE_FLAME_COLOR, side_flame_shape)
 
+    def _draw_fuel_bar(self, rocket):
+        """
+        Draw a fuel bar and remaining fuel percentage as a screen-space overlay.
+        """
+        fuel_fraction = rocket.fuel_mass / rocket.max_fuel_mass
+        fuel_percentage = round(fuel_fraction * 100)
+
+
+        # Nedan anges tom bar helt i vitt
+
+        fuel_bar_x = WINDOW_WIDTH - FUEL_BAR_RIGHT_MARGIN - FUEL_BAR_WIDTH
+        fuel_bar_y = FUEL_BAR_TOP_MARGIN
+
+        fuel_bar_rect = pygame.Rect(
+            fuel_bar_x,
+            fuel_bar_y,
+            FUEL_BAR_WIDTH,
+            FUEL_BAR_HEIGHT,
+        )
+
+        pygame.draw.rect(self.screen, FUEL_BAR_EMPTY_COLOR, fuel_bar_rect) # Ritar först tom tank i vitt
+
+        # Över vita ritas den gråa som motsvarar ifylld, övre vänster hörn beror på fuel_fraction
+        filled_height = int(fuel_fraction * FUEL_BAR_HEIGHT)
+        filled_y = fuel_bar_y + (FUEL_BAR_HEIGHT - filled_height)
+
+        filled_rect = pygame.Rect(
+            fuel_bar_x,
+            filled_y,
+            FUEL_BAR_WIDTH,
+            filled_height,
+        )
+
+        pygame.draw.rect(self.screen, FUEL_BAR_FULL_COLOR, filled_rect)
+        pygame.draw.rect(self.screen, FUEL_BAR_BORDER_COLOR, fuel_bar_rect, FUEL_BAR_BORDER_WIDTH) # Ritar kant runt stapeln
+
+        # Nedan skapas procent-texten
+        fuel_text_surface = self.fuel_font.render(
+            f"{fuel_percentage}%",
+            True,
+            FUEL_TEXT_COLOR,
+        )
+
+        
+        fuel_text_rect = fuel_text_surface.get_rect( # Skapar rektangel som bestämmer var procent-texten ska sitta
+            center=(
+                fuel_bar_rect.centerx,
+                fuel_bar_rect.top - FUEL_TEXT_BOTTOM_MARGIN,
+            )
+        )
+
+        self.screen.blit(fuel_text_surface, fuel_text_rect)
+
     def draw(self, rocket, actions):
         """
         Draw the current simulation state.
@@ -229,8 +296,7 @@ class Renderer:
 
             right_flame_rect = right_flame_rotated.get_rect(center=(right_flame_center_x, right_flame_center_y))
             self.screen.blit(right_flame_rotated, right_flame_rect)
-            
+
+        self._draw_fuel_bar(rocket)
 
         pygame.display.flip() # Innan vi kör flip() så ritar pygame en osynlig bakgundsbild, den tidigare bilden ersätts inte förens flip()
-
-

@@ -5,17 +5,20 @@ import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src" / "rocket")) # Lägger till mappen rocket i pythons sökvägar så vi kan importera från den
 
-from config import ROCKET_MASS
+from config import ROCKET_DRY_MASS, ROCKET_MAX_FUEL_MASS
 from rocket import Rocket
 
 
-def test_rocket_initializes_with_expected_mass():
+def test_rocket_initializes_with_expected_fuel_and_mass_state():
     """
-    Verify that a new rocket gets the expected default mass.
+    Verify that a new rocket gets the expected default dry mass, fuel mass, and total mass.
     """
     rocket = Rocket()
 
-    assert rocket.mass == pytest.approx(ROCKET_MASS)
+    assert rocket.dry_mass == pytest.approx(ROCKET_DRY_MASS)
+    assert rocket.max_fuel_mass == pytest.approx(ROCKET_MAX_FUEL_MASS)
+    assert rocket.fuel_mass == pytest.approx(ROCKET_MAX_FUEL_MASS)
+    assert rocket.mass() == pytest.approx(ROCKET_DRY_MASS + ROCKET_MAX_FUEL_MASS)
 
 
 def test_rocket_initializes_with_expected_position():
@@ -46,6 +49,13 @@ def test_rocket_initializes_with_zero_rotation_state():
 
     assert rocket.angle == pytest.approx(0.0)
     assert rocket.angular_velocity == pytest.approx(0.0)
+
+def test_rocket_mass_returns_sum_of_dry_mass_and_fuel_mass():
+    rocket = Rocket()
+    rocket.dry_mass = 900.0
+    rocket.fuel_mass = 25.0
+
+    assert rocket.mass() == pytest.approx(925.0)
 
 
 if __name__ == "__main__":

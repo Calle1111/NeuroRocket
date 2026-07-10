@@ -28,12 +28,14 @@ def main():
         for event in pygame.event.get(): # Läs alla händelser, om användaren stängde fönstret stoppa programmet.
             if event.type == pygame.QUIT:
                 is_running = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r: # Reset av programmet hanteras av pygame istället för player_actions, 
+                simulation.reset()
 
         actions = get_player_actions()
 
         dt = clock.tick(FPS) / 1000 # Dela med 1000 för att omvandla till sekunder från millisekunder (SI-enheter)
         simulation.update(dt, actions) # Updaterar simulationen
-        renderer.draw(simulation.rocket, actions) # Ritar uppdaterande raketen
+        renderer.draw(simulation.rocket, simulation.active_engine_actions) # Ritar uppdaterande raketen
 
     pygame.quit()
 
