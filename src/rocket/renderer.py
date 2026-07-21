@@ -18,6 +18,7 @@ from config import (
     SIDE_FLAME_HEIGHT,
     PIXELS_PER_METER,
     WINDOW_WIDTH,
+    WINDOW_HEIGHT,
     FUEL_BAR_WIDTH,
     FUEL_BAR_HEIGHT,
     FUEL_BAR_TOP_MARGIN,
@@ -29,6 +30,18 @@ from config import (
     FUEL_TEXT_COLOR,
     FUEL_TEXT_FONT_SIZE,
     FUEL_TEXT_BOTTOM_MARGIN,
+    TERRAIN_FILL_COLOR,
+    LANDING_PAD_COLOR,
+    LANDING_PAD_HEIGHT,
+    STATUS_TEXT_FONT_SIZE,
+    STATUS_TEXT_TOP_MARGIN,
+    RUNNING_STATUS_COLOR,
+    CRASHED_STATUS_COLOR,
+    LANDED_STATUS_COLOR,
+    CRASH_MARKER_SIZE,
+    CRASH_MARKER_BLINK_INTERVAL_MS,
+    CRASH_MARKER_RED_COLOR,
+    CRASH_MARKER_ORANGE_COLOR,
 )
 
 class Renderer:
@@ -49,6 +62,7 @@ class Renderer:
         self.screen = screen
 
         self.fuel_font = pygame.font.SysFont(None, FUEL_TEXT_FONT_SIZE) # Skapar font-objekt fr att sedan rita procenttexten
+        self.status_font = pygame.font.SysFont(None, STATUS_TEXT_FONT_SIZE)
 
         self.rocket_surface = pygame.Surface(
             (
@@ -169,9 +183,7 @@ class Renderer:
         fuel_fraction = rocket.fuel_mass / rocket.max_fuel_mass
         fuel_percentage = round(fuel_fraction * 100)
 
-
         # Nedan anges tom bar helt i vitt
-
         fuel_bar_x = WINDOW_WIDTH - FUEL_BAR_RIGHT_MARGIN - FUEL_BAR_WIDTH
         fuel_bar_y = FUEL_BAR_TOP_MARGIN
 
@@ -215,11 +227,112 @@ class Renderer:
 
         self.screen.blit(fuel_text_surface, fuel_text_rect)
 
-    def draw(self, rocket, actions):
+    def _get_status_text_color(self, status):
+        """
+        Return the display color for the current simulation status.
+        """
+        if status == "running":
+            return RUNNING_STATUS_COLOR
+        if status == "crashed":
+            return CRASHED_STATUS_COLOR
+        if status == "landed":
+            return LANDED_STATUS_COLOR
+
+        return (0, 0, 0)
+
+    def _draw_status_text(self, status):
+        """
+        Draw the current simulation status at the top center of the screen.
+        """
+        status_color = self._get_status_text_color(status)
+
+        status_text_surface = self.status_font.render(
+            status.upper(),
+            True,
+            status_color,
+        )
+
+        status_text_rect = status_text_surface.get_rect(
+            center=(WINDOW_WIDTH // 2, STATUS_TEXT_TOP_MARGIN)
+        )
+
+        self.screen.blit(status_text_surface, status_text_rect)
+
+    def _draw_terrain(self, terrain):
+        """
+        Draw the terrain as a filled ground polygon and a raised landing pad.
+        """
+        terrain_polygon_points = []
+
+        for x_meter, y_meter in terrain.terrain_points:
+            x_pixel = self._meters_to_pixels(x_meter)
+            y_pixel = self._meters_to_pixels(y_meter)
+            terrain_polygon_points.append((x_pixel, y_pixel))
+
+        # Stänger hela polygonen genom att gå längs fönstrets kanter
+        terrain_polygon_points.append((self._meters_to_pixels(terrain.terrain_points[-1][0]), WINDOW_HEIGHT))
+        terrain_polygon_points.append((self._meters_to_pixels(terrain.terrain_points[0][0]), WINDOW_HEIGHT))
+
+        pygame.draw.polygon(
+            self.screen,
+            TERRAIN_FILL_COLOR,
+            terrain_polygon_points,
+        )
+
+        landing_pad_x = self._meters_to_pixels(terrain.landing_pad_x_min)
+        landing_pad_y = self._meters_to_pixels(terrain.landing_pad_y - LANDING_PAD_HEIGHT)
+        landing_pad_width = self._meters_to_pixels(terrain.landing_pad_x_max - terrain.landing_pad_x_min)
+        landing_pad_height = self._meters_to_pixels(LANDING_PAD_HEIGHT)
+
+        landing_pad_rect = pygame.Rect(
+            landing_pad_x,
+            landing_pad_y,
+            landing_pad_width,
+            landing_pad_height,
+        )
+
+        pygame.draw.rect(
+            self.screen,
+            LANDING_PAD_COLOR,
+            landing_pad_rect,
+        )
+
+    def _draw_crash_marker(self, crash_marker_position):
+        """
+        Draw a blinking 1x1 meter marker centered on the crash corner.
+        """
+        if crash_marker_position is None:
+            return
+
+        blink_phase = (
+            pygame.time.get_ticks() // CRASH_MARKER_BLINK_INTERVAL_MS
+        ) % 2
+
+        if blink_phase == 0:
+            marker_color = CRASH_MARKER_RED_COLOR
+        else:
+            marker_color = CRASH_MARKER_ORANGE_COLOR
+
+        marker_size_pixels = self._meters_to_pixels(CRASH_MARKER_SIZE)
+
+        marker_center_x = self._meters_to_pixels(crash_marker_position[0])
+        marker_center_y = self._meters_to_pixels(crash_marker_position[1])
+
+        marker_rect = pygame.Rect(
+            marker_center_x - marker_size_pixels // 2,
+            marker_center_y - marker_size_pixels // 2,
+            marker_size_pixels,
+            marker_size_pixels,
+        )
+
+        pygame.draw.rect(self.screen, marker_color, marker_rect)
+
+    def draw(self, rocket, terrain, actions, status, crash_marker_position):
         """
         Draw the current simulation state.
         """
         self.screen.fill(BACKGROUND_COLOR) # Fyller hela fönstret med given färg
+        self._draw_terrain(terrain)
 
         rocket_surface_rotated = pygame.transform.rotate( # Roterar rocket_surface kring dess centrum
             self.rocket_surface,
@@ -298,5 +411,9 @@ class Renderer:
             self.screen.blit(right_flame_rotated, right_flame_rect)
 
         self._draw_fuel_bar(rocket)
+        self._draw_status_text(status)
+
+        if status == "crashed":
+            self._draw_crash_marker(crash_marker_position)
 
         pygame.display.flip() # Innan vi kör flip() så ritar pygame en osynlig bakgundsbild, den tidigare bilden ersätts inte förens flip()

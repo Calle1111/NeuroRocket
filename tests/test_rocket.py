@@ -27,8 +27,8 @@ def test_rocket_initializes_with_expected_position():
     """
     rocket = Rocket()
 
-    assert rocket.x == pytest.approx(50)
-    assert rocket.y == pytest.approx(35)
+    assert rocket.x == pytest.approx(20.0)
+    assert rocket.y == pytest.approx(25.0)
 
 
 def test_rocket_initializes_with_zero_translational_velocity():

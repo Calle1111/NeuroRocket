@@ -35,7 +35,14 @@ def main():
 
         dt = clock.tick(FPS) / 1000 # Dela med 1000 för att omvandla till sekunder från millisekunder (SI-enheter)
         simulation.update(dt, actions) # Updaterar simulationen
-        renderer.draw(simulation.rocket, simulation.active_engine_actions) # Ritar uppdaterande raketen
+        
+        renderer.draw(
+            simulation.rocket, 
+            simulation.terrain, 
+            simulation.active_engine_actions,
+            simulation.status,
+            simulation.crash_marker_position
+            ) # Ritar uppdaterande raketen
 
     pygame.quit()
 

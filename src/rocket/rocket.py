@@ -15,8 +15,8 @@ class Rocket:
         self.max_fuel_mass = ROCKET_MAX_FUEL_MASS
         self.fuel_mass = ROCKET_MAX_FUEL_MASS
 
-        self.x = 50.0 # Meter
-        self.y = 35.0
+        self.x = 20.0 # Meter
+        self.y = 25.0
 
         self.velocity_x = 0.0
         self.velocity_y = 0.0
