@@ -30,6 +30,18 @@ def main():
                 is_running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_r: # Reset av programmet hanteras av pygame istället för player_actions, 
                 simulation.reset()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_1:
+                simulation.reset(template_id=0)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_2:
+                simulation.reset(template_id=1)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_3:
+                simulation.reset(template_id=2)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_4:
+                simulation.reset(template_id=3)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_5:
+                simulation.reset(template_id=4)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_h:
+                renderer.toggle_hud()
 
         actions = get_player_actions()
 

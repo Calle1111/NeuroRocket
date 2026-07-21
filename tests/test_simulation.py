@@ -5,9 +5,10 @@ import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src" / "rocket")) # Lägger till mappen rocket i pythons sökvägar så vi kan importera från den
 
-from config import ROCKET_HEIGHT
+from config import PIXELS_PER_METER, ROCKET_HEIGHT, ROCKET_WIDTH, WINDOW_WIDTH
 from rocket import Rocket
 from simulation import Simulation
+from terrain import TERRAIN_TEMPLATE_COUNT
 
 
 def create_actions(main_engine=False, left_engine=False, right_engine=False):
@@ -19,6 +20,32 @@ def create_actions(main_engine=False, left_engine=False, right_engine=False):
         "left_engine": left_engine,
         "right_engine": right_engine,
     }
+
+
+def assert_rocket_spawn_is_within_allowed_area(simulation):
+    """
+    Verify that the rocket spawn keeps all corners within the required margins.
+    """
+    world_margin = 2.0
+    terrain_margin = 2.0
+
+    half_rocket_width = ROCKET_WIDTH / 2
+    half_rocket_height = ROCKET_HEIGHT / 2
+    world_width_meters = WINDOW_WIDTH / PIXELS_PER_METER
+    highest_terrain_y = min(y for _, y in simulation.terrain.terrain_points)
+
+    minimum_spawn_x = world_margin + half_rocket_width
+    maximum_spawn_x = world_width_meters - world_margin - half_rocket_width
+
+    minimum_spawn_y = world_margin + half_rocket_height
+    maximum_spawn_y = highest_terrain_y - terrain_margin - half_rocket_height
+
+    tolerance = 1e-9
+
+    assert simulation.rocket.x >= minimum_spawn_x - tolerance
+    assert simulation.rocket.x <= maximum_spawn_x + tolerance
+    assert simulation.rocket.y >= minimum_spawn_y - tolerance
+    assert simulation.rocket.y <= maximum_spawn_y + tolerance
 
 
 def test_simulation_initializes_with_a_rocket():
@@ -37,6 +64,15 @@ def test_simulation_initializes_with_running_status():
     simulation = Simulation()
 
     assert simulation.status == "running"
+
+
+def test_simulation_initial_spawn_is_within_allowed_area():
+    """
+    Verify that a new simulation spawns the rocket within the allowed margins.
+    """
+    simulation = Simulation()
+
+    assert_rocket_spawn_is_within_allowed_area(simulation)
 
 
 def test_simulation_update_changes_rocket_translation_state():
@@ -82,13 +118,12 @@ def test_simulation_reset_restores_rocket_to_default_state():
 
     simulation.reset()
 
-    assert simulation.rocket.x == pytest.approx(20.0)
-    assert simulation.rocket.y == pytest.approx(25.0)
     assert simulation.rocket.velocity_x == pytest.approx(0.0)
     assert simulation.rocket.velocity_y == pytest.approx(0.0)
     assert simulation.rocket.angle == pytest.approx(0.0)
     assert simulation.rocket.angular_velocity == pytest.approx(0.0)
     assert simulation.rocket.fuel_mass == pytest.approx(simulation.rocket.max_fuel_mass)
+    assert_rocket_spawn_is_within_allowed_area(simulation)
 
 
 def test_simulation_reset_restores_running_status():
@@ -134,6 +169,30 @@ def test_simulation_reset_replaces_the_old_rocket_instance():
 
     assert simulation.rocket is not old_rocket
     assert isinstance(simulation.rocket, Rocket)
+
+
+def test_simulation_reset_random_spawn_is_within_allowed_area():
+    """
+    Verify that reset randomizes a rocket spawn that still respects all margins.
+    """
+    simulation = Simulation()
+
+    simulation.reset()
+
+    assert_rocket_spawn_is_within_allowed_area(simulation)
+
+
+@pytest.mark.parametrize("template_id", range(TERRAIN_TEMPLATE_COUNT))
+def test_simulation_reset_spawn_is_within_allowed_area_for_each_template(template_id):
+    """
+    Verify that each terrain template can spawn the rocket within the allowed area.
+    """
+    simulation = Simulation()
+
+    simulation.reset(template_id=template_id)
+
+    assert simulation.current_template_id == template_id
+    assert_rocket_spawn_is_within_allowed_area(simulation)
 
 
 def test_simulation_update_sets_crashed_status_after_non_pad_terrain_contact():

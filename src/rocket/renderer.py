@@ -42,6 +42,11 @@ from config import (
     CRASH_MARKER_BLINK_INTERVAL_MS,
     CRASH_MARKER_RED_COLOR,
     CRASH_MARKER_ORANGE_COLOR,
+    HUD_TEXT_COLOR,
+    HUD_TEXT_FONT_SIZE,
+    HUD_LEFT_MARGIN,
+    HUD_TOP_MARGIN,
+    HUD_LINE_SPACING,
 )
 
 class Renderer:
@@ -60,9 +65,11 @@ class Renderer:
             screen: The pygame display surface.
         """
         self.screen = screen
+        self.show_hud = False
 
         self.fuel_font = pygame.font.SysFont(None, FUEL_TEXT_FONT_SIZE) # Skapar font-objekt fr att sedan rita procenttexten
         self.status_font = pygame.font.SysFont(None, STATUS_TEXT_FONT_SIZE)
+        self.hud_font = pygame.font.SysFont(None, HUD_TEXT_FONT_SIZE)
 
         self.rocket_surface = pygame.Surface(
             (
@@ -89,6 +96,7 @@ class Renderer:
         self._create_rocket_surface()
         self._create_main_flame_surface()
         self._create_side_flame_surface()
+
 
     def _meters_to_pixels(self, length_in_meters):
         """
@@ -327,6 +335,38 @@ class Renderer:
 
         pygame.draw.rect(self.screen, marker_color, marker_rect)
 
+    def _format_hud_value(self, value):
+        return f"{value:.2f}"
+    
+    def _draw_rocket_hud(self, rocket):
+        angle_degrees = math.degrees(rocket.angle)
+        angular_velocity_degrees = math.degrees(rocket.angular_velocity)
+
+        hud_lines = [
+            f"Horizontal velocity: {self._format_hud_value(rocket.velocity_x)} m/s",
+            f"Vertical velocity: {self._format_hud_value(rocket.velocity_y)} m/s",
+            f"X: {self._format_hud_value(rocket.x)} m",
+            f"Y: {self._format_hud_value(rocket.y)} m",
+            f"Angular velocity: {self._format_hud_value(angular_velocity_degrees)} deg/s",
+            f"Angle: {self._format_hud_value(angle_degrees)} deg",
+        ]
+
+        for index, line in enumerate(hud_lines):
+            text_surface = self.hud_font.render(line, True, HUD_TEXT_COLOR)
+            text_rect = text_surface.get_rect(
+                topleft=(
+                    HUD_LEFT_MARGIN,
+                    HUD_TOP_MARGIN + index * HUD_LINE_SPACING,
+                )
+            )
+            self.screen.blit(text_surface, text_rect)
+
+    def toggle_hud(self):
+        """
+        Toggle whether the rocket HUD should be drawn or not.
+        """
+        self.show_hud = not self.show_hud
+
     def draw(self, rocket, terrain, actions, status, crash_marker_position):
         """
         Draw the current simulation state.
@@ -412,6 +452,9 @@ class Renderer:
 
         self._draw_fuel_bar(rocket)
         self._draw_status_text(status)
+        
+        if self.show_hud:
+            self._draw_rocket_hud(rocket)
 
         if status == "crashed":
             self._draw_crash_marker(crash_marker_position)
